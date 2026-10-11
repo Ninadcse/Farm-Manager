@@ -2,13 +2,13 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="theme-color" content="#205d36"><meta name="description" content="Manage poultry, fish ponds, vegetable plots, farm tasks, expenses and income with GreenNest Farm Manager.">
 <title>GreenNest Farm Manager</title>
 <style>
 :root{--bg:#f5f7f2;--card:#fff;--text:#243126;--muted:#6b756d;--green:#2f7d4a;--green2:#e7f3ea;--orange:#d9822b;--red:#c94b4b;--line:#e3e8e2;--shadow:0 8px 24px rgba(30,50,35,.08)}
 *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,Segoe UI,Arial,sans-serif}
 header{background:linear-gradient(135deg,#205d36,#3d8d55);color:white;padding:22px 18px}
-.wrap{max-width:1150px;margin:auto}.brand{display:flex;align-items:center;justify-content:space-between;gap:15px}.brand h1{margin:0;font-size:25px}.brand p{margin:5px 0 0;opacity:.85;font-size:13px}
+.wrap{max-width:1150px;margin:auto}.header-actions{display:flex;gap:8px;flex-wrap:wrap}.brand{display:flex;align-items:center;justify-content:space-between;gap:15px}.brand h1{margin:0;font-size:25px}.brand p{margin:5px 0 0;opacity:.85;font-size:13px}
 button{border:0;border-radius:10px;padding:11px 15px;font-weight:600;cursor:pointer}.primary{background:var(--green);color:#fff}.light{background:#fff;color:var(--green)}.danger{background:#fff0f0;color:var(--red)}
 nav{background:#fff;border-bottom:1px solid var(--line);position:sticky;top:0;z-index:5}.tabs{display:flex;gap:5px;overflow:auto;padding:8px 0}.tab{background:transparent;color:var(--muted);white-space:nowrap}.tab.active{background:var(--green2);color:var(--green)}
 main{padding:22px 0 45px}.section{display:none}.section.active{display:block}.hero{display:flex;justify-content:space-between;gap:15px;align-items:center;margin-bottom:18px}.hero h2{margin:0 0 4px}.hero p{margin:0;color:var(--muted)}
@@ -18,12 +18,12 @@ h3{margin:0 0 13px}.muted{color:var(--muted);font-size:13px}.table{width:100%;bo
 .list{display:flex;flex-direction:column;gap:9px}.item{display:flex;justify-content:space-between;gap:12px;align-items:center;padding:12px;background:#fafcfa;border:1px solid var(--line);border-radius:10px}.badge{font-size:11px;padding:5px 8px;border-radius:20px;background:var(--green2);color:var(--green)}.badge.orange{background:#fff3df;color:#9b5d19}.badge.red{background:#ffe8e8;color:#a63232}
 .empty{text-align:center;padding:30px;color:var(--muted)}
 .toast{position:fixed;right:18px;bottom:18px;background:#26372b;color:#fff;padding:12px 16px;border-radius:10px;display:none;z-index:20}
-@media(max-width:800px){.grid{grid-template-columns:repeat(2,1fr)}.grid3{grid-template-columns:1fr}.hero{align-items:flex-start;flex-direction:column}.brand h1{font-size:21px}}
+@media(max-width:800px){.brand{align-items:flex-start;flex-direction:column}.header-actions{width:100%}.header-actions button{flex:1}.grid{grid-template-columns:repeat(2,1fr)}.grid3{grid-template-columns:1fr}.hero{align-items:flex-start;flex-direction:column}.brand h1{font-size:21px}}
 @media(max-width:520px){.wrap{padding-left:13px;padding-right:13px}.grid{grid-template-columns:1fr 1fr}.form{grid-template-columns:1fr}.form .full{grid-column:auto}.metric .num{font-size:22px}.table{min-width:650px}.table-wrap{overflow:auto}}
 </style>
 </head>
 <body>
-<header><div class="wrap brand"><div><h1>🌱 GreenNest_Farm_Manager.html</h1><p>Integrated Chicken • Fish • Vegetable Farming</p></div><button class="light" onclick="showTab('dashboard')">Dashboard</button></div></header>
+<header><div class="wrap brand"><div><h1>🌱 GreenNest_Farm_Manager.html</h1><p>Integrated Chicken • Fish • Vegetable Farming</p></div><div class="header-actions"><button class="light" onclick="showTab('dashboard')">Dashboard</button><button class="light" onclick="exportData()">Export backup</button><button class="light" onclick="document.getElementById('importFile').click()">Import backup</button><input id="importFile" type="file" accept="application/json,.json" hidden onchange="importData(event)"></div></div></header>
 <nav><div class="wrap tabs">
 <button class="tab active" data-tab="dashboard" onclick="showTab('dashboard')">🏠 Dashboard</button>
 <button class="tab" data-tab="chicken" onclick="showTab('chicken')">🐔 Chicken</button>
@@ -85,10 +85,15 @@ h3{margin:0 0 13px}.muted{color:var(--muted);font-size:13px}.table{width:100%;bo
 
 <script>
 const key='greennest_farm_v1';
-let data=JSON.parse(localStorage.getItem(key)||'null')||{chickens:[],fish:[],veg:[],expenses:[],tasks:[]};
-function save(){localStorage.setItem(key,JSON.stringify(data));renderAll()}
-function money(n){return '৳'+Number(n||0).toLocaleString('en-BD')}
-function today(){return new Date().toISOString().slice(0,10)}
+const emptyData=()=>({chickens:[],fish:[],veg:[],expenses:[],tasks:[]});
+function loadData(){try{const raw=localStorage.getItem(key);if(!raw)return emptyData();const p=JSON.parse(raw);return {...emptyData(),...p,chickens:Array.isArray(p.chickens)?p.chickens:[],fish:Array.isArray(p.fish)?p.fish:[],veg:Array.isArray(p.veg)?p.veg:[],expenses:Array.isArray(p.expenses)?p.expenses:[],tasks:Array.isArray(p.tasks)?p.tasks:[]}}catch(e){console.error('Could not load farm data',e);return emptyData()}}
+let data=loadData();
+function save(){try{localStorage.setItem(key,JSON.stringify(data));renderAll();return true}catch(e){console.error(e);toast('Could not save. Export a backup and free browser storage.');return false}}
+function esc(v){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+function money(n){return '৳'+Number(n||0).toLocaleString('en-BD',{maximumFractionDigits:2})}
+function today(){const d=new Date();return [d.getFullYear(),String(d.getMonth()+1).padStart(2,'0'),String(d.getDate()).padStart(2,'0')].join('-')}
+function exportData(){const blob=new Blob([JSON.stringify({app:'GreenNest Farm Manager',version:1,exportedAt:new Date().toISOString(),data},null,2)],{type:'application/json'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download='greennest-farm-backup-'+today()+'.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);toast('Backup exported')}
+function importData(event){const file=event.target.files&&event.target.files[0];if(!file)return;const reader=new FileReader();reader.onload=()=>{try{const p=JSON.parse(reader.result);const d=p.data||p;if(!d||!['chickens','fish','veg','expenses','tasks'].every(k=>Array.isArray(d[k]||[])))throw new Error('Invalid backup');if(!confirm('Importing replaces current records. Export a backup first if needed. Continue?'))return;data={...emptyData(),...d};save();toast('Backup imported')}catch(e){toast('Invalid backup file')}finally{event.target.value=''}};reader.readAsText(file)}
 function showTab(id){document.querySelectorAll('.section').forEach(x=>x.classList.remove('active'));document.getElementById(id).classList.add('active');document.querySelectorAll('.tab').forEach(x=>x.classList.toggle('active',x.dataset.tab===id))}
 function openForm(id){document.getElementById(id).style.display='block'}
 function closeForm(id){document.getElementById(id).style.display='none';document.getElementById(id).reset()}
@@ -107,13 +112,13 @@ mFish.textContent=data.fish.reduce((a,x)=>a+x.qty,0).toLocaleString();
 mVeg.textContent=data.veg.length;
 let exp=data.expenses.filter(x=>x.type==='Expense').reduce((a,x)=>a+x.amount,0),inc=data.expenses.filter(x=>x.type==='Income').reduce((a,x)=>a+x.amount,0);
 mCost.textContent=money(exp);totalExp.textContent=money(exp);totalInc.textContent=money(inc);balance.textContent=money(inc-exp);
-chickenTable.innerHTML=data.chickens.length?data.chickens.map((x,i)=>`<tr><td>${x.name}</td><td>${x.type}</td><td>${x.qty}</td><td>${x.date}</td><td><button class="danger" onclick="del(data.chickens,${i})">Delete</button></td></tr>`).join(''):'<tr><td colspan="5" class="empty">No chicken batches yet.</td></tr>';
-fishTable.innerHTML=data.fish.length?data.fish.map((x,i)=>`<tr><td>${x.name}</td><td>${x.species}</td><td>${x.qty}</td><td>${x.area}</td><td><button class="danger" onclick="del(data.fish,${i})">Delete</button></td></tr>`).join(''):'<tr><td colspan="5" class="empty">No ponds yet.</td></tr>';
-vegTable.innerHTML=data.veg.length?data.veg.map((x,i)=>`<tr><td>${x.crop}</td><td>${x.plot}</td><td>${x.date}</td><td>${x.harvest||'-'}</td><td><button class="danger" onclick="del(data.veg,${i})">Delete</button></td></tr>`).join(''):'<tr><td colspan="5" class="empty">No crops yet.</td></tr>';
-expenseTable.innerHTML=data.expenses.length?data.expenses.slice().reverse().map((x,i)=>`<tr><td>${x.date}</td><td><span class="badge ${x.type==='Expense'?'orange':''}">${x.type}</span></td><td>${x.cat}</td><td>${money(x.amount)}</td><td>${x.note||'-'}</td><td><button class="danger" onclick="del(data.expenses,${data.expenses.length-1-i})">Delete</button></td></tr>`).join(''):'<tr><td colspan="6" class="empty">No transactions yet.</td></tr>';
-taskList.innerHTML=data.tasks.length?data.tasks.slice().sort((a,b)=>a.done-b.done).map((x,i)=>`<div class="item"><div><b style="${x.done?'text-decoration:line-through;opacity:.55':''}">${x.name}</b><div class="muted">${x.area} • ${x.date}</div></div><div><span class="badge ${x.priority==='High'?'red':''}">${x.priority}</span> <button class="${x.done?'light':'primary'}" onclick="toggleTask(${data.tasks.indexOf(x)})">${x.done?'Done':'Mark done'}</button></div></div>`).join(''):'<div class="empty">No tasks yet. Add your first farm task.</div>';
-let pending=data.tasks.filter(x=>!x.done).slice(0,4);dashTasks.innerHTML=pending.length?pending.map(x=>`<div class="item"><span>${x.name}</span><span class="badge">${x.area}</span></div>`).join(''):'<div class="empty">No pending tasks.</div>';
-let alerts=[];data.tasks.filter(x=>!x.done&&x.priority==='High').slice(0,3).forEach(x=>alerts.push(`<div class="item"><span>⚠️ ${x.name}</span><span class="badge red">High</span></div>`));
+chickenTable.innerHTML=data.chickens.length?data.chickens.map((x,i)=>`<tr><td>${esc(x.name)}</td><td>${esc(x.type)}</td><td>${esc(x.qty)}</td><td>${esc(x.date)}</td><td><button class="danger" onclick="del(data.chickens,${i})">Delete</button></td></tr>`).join(''):'<tr><td colspan="5" class="empty">No chicken batches yet.</td></tr>';
+fishTable.innerHTML=data.fish.length?data.fish.map((x,i)=>`<tr><td>${esc(x.name)}</td><td>${esc(x.species)}</td><td>${esc(x.qty)}</td><td>${esc(x.area)}</td><td><button class="danger" onclick="del(data.fish,${i})">Delete</button></td></tr>`).join(''):'<tr><td colspan="5" class="empty">No ponds yet.</td></tr>';
+vegTable.innerHTML=data.veg.length?data.veg.map((x,i)=>`<tr><td>${esc(x.crop)}</td><td>${esc(x.plot)}</td><td>${esc(x.date)}</td><td>${esc(x.harvest||'-')}</td><td><button class="danger" onclick="del(data.veg,${i})">Delete</button></td></tr>`).join(''):'<tr><td colspan="5" class="empty">No crops yet.</td></tr>';
+expenseTable.innerHTML=data.expenses.length?data.expenses.slice().reverse().map((x,i)=>`<tr><td>${esc(x.date)}</td><td><span class="badge ${x.type==='Expense'?'orange':''}">${esc(x.type)}</span></td><td>${esc(x.cat)}</td><td>${money(x.amount)}</td><td>${esc(x.note||'-')}</td><td><button class="danger" onclick="del(data.expenses,${data.expenses.length-1-i})">Delete</button></td></tr>`).join(''):'<tr><td colspan="6" class="empty">No transactions yet.</td></tr>';
+taskList.innerHTML=data.tasks.length?data.tasks.slice().sort((a,b)=>Number(a.done)-Number(b.done)||String(a.date||'').localeCompare(String(b.date||''))).map((x,i)=>`<div class="item"><div><b style="${x.done?'text-decoration:line-through;opacity:.55':''}">${esc(x.name)}</b><div class="muted">${esc(x.area)} • ${esc(x.date)}</div></div><div><span class="badge ${x.priority==='High'?'red':''}">${esc(x.priority)}</span> <button class="${x.done?'light':'primary'}" onclick="toggleTask(${data.tasks.indexOf(x)})">${x.done?'Done':'Mark done'}</button></div></div>`).join(''):'<div class="empty">No tasks yet. Add your first farm task.</div>';
+let pending=data.tasks.filter(x=>!x.done).slice(0,4);dashTasks.innerHTML=pending.length?pending.map(x=>`<div class="item"><span>${esc(x.name)}</span><span class="badge">${esc(x.area)}</span></div>`).join(''):'<div class="empty">No pending tasks.</div>';
+let alerts=[];data.tasks.filter(x=>!x.done&&x.date<today()).slice(0,3).forEach(x=>alerts.push(`<div class="item"><span>⏰ ${esc(x.name)}</span><span class="badge red">Overdue</span></div>`));data.tasks.filter(x=>!x.done&&x.priority==='High').slice(0,3).forEach(x=>alerts.push(`<div class="item"><span>⚠️ ${esc(x.name)}</span><span class="badge red">High</span></div>`));
 if(!alerts.length) alerts.push('<div class="item"><span>Everything looks calm.</span><span class="badge">OK</span></div>');
 alertsDiv=alerts.join('');document.getElementById('alerts').innerHTML=alertsDiv;
 summary.innerHTML=`<div class="item"><span>Chicken batches</span><b>${data.chickens.length}</b></div><div class="item"><span>Fish ponds</span><b>${data.fish.length}</b></div><div class="item"><span>Crop plots</span><b>${data.veg.length}</b></div><div class="item"><span>Pending tasks</span><b>${data.tasks.filter(x=>!x.done).length}</b></div>`;
